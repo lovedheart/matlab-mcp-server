@@ -27,7 +27,7 @@ func TestBuild_HappyPath(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 
-	assertPackageJSONStaged(t, stagingDir)
+	assertPackageFilesStaged(t, stagingDir)
 	assertManifestStaged(t, stagingDir)
 	assertStaticAssetsStaged(t, stagingDir)
 }
@@ -115,15 +115,24 @@ func TestBuild_LaunchersSetMCPBContextTags(t *testing.T) {
 	assert.Contains(t, cmdText, expectedCmdTagNew)
 }
 
-func assertPackageJSONStaged(t *testing.T, stagingDir string) {
+func assertPackageFilesStaged(t *testing.T, stagingDir string) {
 	t.Helper()
+
+	expectedName := "matlab-mcp-server-build"
 
 	content, err := os.ReadFile(filepath.Join(stagingDir, "package.json")) //nolint:gosec // Test file path from t.TempDir()
 	require.NoError(t, err)
 
 	var pkg map[string]any
 	require.NoError(t, json.Unmarshal(content, &pkg))
-	assert.Equal(t, "matlab-mcp-server-build", pkg["name"])
+	assert.Equal(t, expectedName, pkg["name"])
+
+	content, err = os.ReadFile(filepath.Join(stagingDir, "package-lock.json")) //nolint:gosec // Test file path from t.TempDir()
+	require.NoError(t, err)
+
+	var lock map[string]any
+	require.NoError(t, json.Unmarshal(content, &lock))
+	assert.Equal(t, expectedName, lock["name"])
 }
 
 func assertManifestStaged(t *testing.T, stagingDir string) {

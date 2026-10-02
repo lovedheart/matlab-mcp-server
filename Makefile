@@ -423,7 +423,7 @@ pack-mcpb-bundle: mcpb-stage ensure-all-binaries-executable
 ifeq ($(OS),Windows_NT)
 	@Copy-Item "$(ALL_BIN_DIR)/matlab-mcp-server-*" "$(MCPB_STAGING_DIR)/bundle/bin/" -ErrorAction Stop
 	@Push-Location "$(MCPB_STAGING_DIR)"; \
-		npm i; \
+		npm ci; \
 		if ($$LASTEXITCODE -ne 0) { Pop-Location; exit 1 }; \
 		npm run mcpb-pack -- "$(MCPB_FILENAME)"; \
 		$$ec = $$LASTEXITCODE; \
@@ -433,7 +433,7 @@ ifeq ($(OS),Windows_NT)
 	@Write-Host "Created: $(MCPB_STAGING_DIR)/$(MCPB_FILENAME)"
 else
 	@cp "$(ALL_BIN_DIR)"/matlab-mcp-server-* "$(MCPB_STAGING_DIR)/bundle/bin/"
-	@cd "$(MCPB_STAGING_DIR)" && npm i && npm run mcpb-pack -- "$(MCPB_FILENAME)"
+	@cd "$(MCPB_STAGING_DIR)" && npm ci && npm run mcpb-pack -- "$(MCPB_FILENAME)"
 	@echo ""
 	@echo "Created: $(MCPB_STAGING_DIR)/$(MCPB_FILENAME)"
 endif

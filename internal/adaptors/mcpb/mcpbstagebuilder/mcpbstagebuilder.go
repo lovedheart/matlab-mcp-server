@@ -50,7 +50,7 @@ func Build(version string) error {
 		return err
 	}
 
-	if err := stagePackageJSON(mcpbStaging, assets); err != nil {
+	if err := stagePackageFiles(mcpbStaging, assets); err != nil {
 		return err
 	}
 
@@ -79,16 +79,21 @@ func validateStagingDir(path string) error {
 	return nil
 }
 
-func stagePackageJSON(mcpbStaging string, assets fs.FS) error {
-	relativePath := "package.json"
-
-	content, err := fs.ReadFile(assets, filepath.ToSlash(filepath.Join("assets", relativePath)))
-	if err != nil {
-		return fmt.Errorf("failed to read template: %w", err)
+func stagePackageFiles(mcpbStaging string, assets fs.FS) error {
+	relativePaths := []string{
+		"package.json",
+		"package-lock.json",
 	}
 
-	if err := os.WriteFile(filepath.Join(mcpbStaging, relativePath), content, filePermissions); err != nil {
-		return fmt.Errorf("failed to write package.json: %w", err)
+	for _, relativePath := range relativePaths {
+		content, err := fs.ReadFile(assets, filepath.ToSlash(filepath.Join("assets", relativePath)))
+		if err != nil {
+			return fmt.Errorf("failed to read %s template: %w", relativePath, err)
+		}
+
+		if err := os.WriteFile(filepath.Join(mcpbStaging, relativePath), content, filePermissions); err != nil {
+			return fmt.Errorf("failed to write %s: %w", relativePath, err)
+		}
 	}
 
 	return nil
