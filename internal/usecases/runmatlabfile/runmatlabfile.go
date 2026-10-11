@@ -23,7 +23,7 @@ type Args struct {
 }
 
 type PathValidator interface {
-	ValidateMATLABScript(filePath string) (string, error)
+	ValidateMATLABCodeFile(filePath string) (string, error)
 }
 
 type Usecase struct {
@@ -42,7 +42,7 @@ func (u *Usecase) Execute(ctx context.Context, sessionLogger entities.Logger, cl
 	sessionLogger.Debug("Entering RunMATLABFile Usecase")
 	defer sessionLogger.Debug("Exiting RunMATLABFile Usecase")
 
-	validatedPath, err := u.pathValidator.ValidateMATLABScript(request.ScriptPath)
+	validatedPath, err := u.pathValidator.ValidateMATLABCodeFile(request.ScriptPath)
 	if err != nil {
 		return entities.EvalResponse{}, err
 	}

@@ -58,7 +58,7 @@ func TestUsecase_Execute_HappyPath(t *testing.T) {
 	ctx := t.Context()
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(scriptPath).
+		ValidateMATLABCodeFile(scriptPath).
 		Return(scriptPath, nil).
 		Once()
 
@@ -107,7 +107,7 @@ func TestUsecase_Execute_EscapesSingleQuotesInPath(t *testing.T) {
 	}
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(scriptPath).
+		ValidateMATLABCodeFile(scriptPath).
 		Return(scriptPath, nil).
 		Once()
 
@@ -126,7 +126,7 @@ func TestUsecase_Execute_EscapesSingleQuotesInPath(t *testing.T) {
 	assert.Equal(t, expectedResponse, response, "Response should match expected value")
 }
 
-func TestUsecase_Execute_ValidateMATLABScriptError(t *testing.T) {
+func TestUsecase_Execute_ValidateMATLABCodeFileError(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -143,7 +143,7 @@ func TestUsecase_Execute_ValidateMATLABScriptError(t *testing.T) {
 	usecaseRequest := runmatlabtestfile.Args{ScriptPath: scriptPath}
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(scriptPath).
+		ValidateMATLABCodeFile(scriptPath).
 		Return("", expectedError).
 		Once()
 
@@ -178,7 +178,7 @@ func TestUsecase_Execute_RunMATLABTestFileEvalError(t *testing.T) {
 	}
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(scriptPath).
+		ValidateMATLABCodeFile(scriptPath).
 		Return(scriptPath, nil).
 		Once()
 

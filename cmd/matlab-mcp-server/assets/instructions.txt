@@ -5,7 +5,7 @@ Available tools:
 - List installed MATLAB toolboxes and versions.
 - Statically analyze a MATLAB .m script.
 - Execute inline MATLAB commands.
-- Execute a MATLAB .m script file.
+- Execute a MATLAB script file (.m or .p).
 - Run a MATLAB test script.
 
 Available resources:

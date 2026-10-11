@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/matlab/matlab-mcp-server/internal/usecases/utils/matlabstring"
 	"github.com/matlab/matlab-mcp-server/tests/system/testdata"
 	"github.com/matlab/matlab-mcp-server/tests/testutils/matlablocator"
 	"github.com/matlab/matlab-mcp-server/tests/testutils/mcpclient"
@@ -233,6 +234,29 @@ func (s *SystemTestSuite) testScriptPath() string {
 
 func (s *SystemTestSuite) testMathFunctionsPath() string {
 	return filepath.Join(s.testDataDir, "test_math_functions.m")
+}
+
+func (s *SystemTestSuite) testPCodablePath() string {
+	return filepath.Join(s.testDataDir, "test_pcodable.m")
+}
+
+// preparePCodeFiles compiles test_script.m and test_pcodable.m to P-code in a
+// fresh temporary folder and returns the paths of the resulting .p files.
+func (s *SystemTestSuite) preparePCodeFiles(ctx context.Context, session *SystemSession) (scriptPCodePath, testPCodePath string) {
+	s.T().Helper()
+
+	pcodeDir := s.T().TempDir()
+	scriptPCodePath = filepath.Join(pcodeDir, "test_script.p")
+	testPCodePath = filepath.Join(pcodeDir, "test_pcodable.p")
+
+	_, err := session.EvaluateCode(ctx,
+		fmt.Sprintf("pcode('%s', '%s')",
+			matlabstring.EscapeSingleQuotes(s.testScriptPath()), matlabstring.EscapeSingleQuotes(s.testPCodablePath())), pcodeDir)
+	s.Require().NoError(err, "should compile p-code files")
+	s.Require().FileExists(scriptPCodePath, "pcode should produce a .p script")
+	s.Require().FileExists(testPCodePath, "pcode should produce a .p test file")
+
+	return scriptPCodePath, testPCodePath
 }
 
 // matlabRoot returns the MATLAB root directory (without /bin)

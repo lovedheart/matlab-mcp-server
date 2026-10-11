@@ -138,6 +138,18 @@ func (s *WorkflowTestSuite) TestInteractiveDevelopmentWorkflow() {
 			testOutput, err := session.RunTestFile(ctx, s.testMathFunctionsPath())
 			s.Require().NoError(err, "should execute test suite without error")
 			testdata.TestMathFunctions.Assert(s.T(), testOutput)
+
+			// Step 8: P-code execution - run_matlab_file and run_matlab_test_file should
+			// be compatible with P-code (.p) files
+			scriptPCodePath, testPCodePath := s.preparePCodeFiles(ctx, session)
+
+			pcodeScriptOutput, err := session.RunFile(ctx, scriptPCodePath)
+			s.Require().NoError(err, "should execute p-code script without error")
+			testdata.TestScript.Assert(s.T(), pcodeScriptOutput)
+
+			pcodeTestOutput, err := session.RunTestFile(ctx, testPCodePath)
+			s.Require().NoError(err, "should execute p-code test file without error")
+			testdata.TestPCodable.Assert(s.T(), pcodeTestOutput)
 		})
 	}
 }

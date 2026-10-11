@@ -26,7 +26,7 @@ func TestNew_HappyPath(t *testing.T) {
 	assert.NotNil(t, validator, "New() should return a non-nil Validator")
 }
 
-func TestValidator_ValidateMATLABScript_HappyPath(t *testing.T) {
+func TestValidator_ValidateMATLABSourceFile_HappyPath(t *testing.T) {
 	// Arrange
 	mockOsLayer := &mocks.MockOSLayer{}
 	defer mockOsLayer.AssertExpectations(t)
@@ -50,32 +50,102 @@ func TestValidator_ValidateMATLABScript_HappyPath(t *testing.T) {
 		Once()
 
 	// Act
-	result, err := validator.ValidateMATLABScript(testPath)
+	result, err := validator.ValidateMATLABSourceFile(testPath)
 
 	// Assert
 	require.NoError(t, err)
 	assert.Equal(t, testPath, result)
 }
 
-func TestValidator_ValidateMATLABScript_InvalidPath(t *testing.T) {
+func TestValidator_ValidateMATLABSourceFile_RejectsPCode(t *testing.T) {
+	// Arrange
+	mockOsLayer := &mocks.MockOSLayer{}
+	defer mockOsLayer.AssertExpectations(t)
+
+	validator := pathvalidator.New(mockOsLayer)
+
+	testPath, absErr := filepath.Abs("test.p")
+	require.NoError(t, absErr)
+
+	// Act
+	_, err := validator.ValidateMATLABSourceFile(testPath)
+
+	// Assert
+	require.ErrorIs(t, err, pathvalidator.ErrUnsupportedFileExtension)
+}
+
+func TestValidator_ValidateMATLABCodeFile_HappyPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileName string
+	}{
+		{
+			name:     "MATLAB source file",
+			fileName: "test.m",
+		},
+		{
+			name:     "P-code file",
+			fileName: "test.p",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockOsLayer := &mocks.MockOSLayer{}
+			defer mockOsLayer.AssertExpectations(t)
+
+			mockFileInfo := &osfacademocks.MockFileInfo{}
+			defer mockFileInfo.AssertExpectations(t)
+
+			validator := pathvalidator.New(mockOsLayer)
+
+			testPath, absErr := filepath.Abs(tt.fileName)
+			require.NoError(t, absErr)
+
+			mockOsLayer.EXPECT().
+				Stat(testPath).
+				Return(mockFileInfo, nil).
+				Once()
+
+			mockFileInfo.EXPECT().
+				IsDir().
+				Return(false).
+				Once()
+
+			// Act
+			result, err := validator.ValidateMATLABCodeFile(testPath)
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, testPath, result)
+		})
+	}
+}
+
+func TestValidator_ValidateMATLABCodeFile_InvalidPath(t *testing.T) {
 	folderPath, absErr := filepath.Abs("./")
 	require.NoError(t, absErr)
 
 	tests := []struct {
-		name     string
-		filePath string
+		name        string
+		filePath    string
+		expectedErr error
 	}{
 		{
-			name:     "MATLAB file with relative path",
-			filePath: filepath.Join(".", "relative", "folder", "test.m"),
+			name:        "MATLAB file with relative path",
+			filePath:    filepath.Join(".", "relative", "folder", "test.m"),
+			expectedErr: pathvalidator.ErrInvalidAbsolutePath,
 		},
 		{
-			name:     "Folder path",
-			filePath: folderPath,
+			name:        "Folder path",
+			filePath:    folderPath,
+			expectedErr: pathvalidator.ErrUnsupportedFileExtension,
 		},
 		{
-			name:     "Empty path",
-			filePath: "",
+			name:        "Empty path",
+			filePath:    "",
+			expectedErr: pathvalidator.ErrInvalidAbsolutePath,
 		},
 	}
 
@@ -88,21 +158,21 @@ func TestValidator_ValidateMATLABScript_InvalidPath(t *testing.T) {
 			validator := pathvalidator.New(mockOsLayer)
 
 			// Act
-			_, err := validator.ValidateMATLABScript(tt.filePath)
+			_, err := validator.ValidateMATLABCodeFile(tt.filePath)
 
 			// Assert
-			require.Error(t, err)
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }
 
-func TestValidator_ValidateMATLABScript_NotMATLABScript(t *testing.T) {
+func TestValidator_ValidateMATLABCodeFile_NotMATLABFile(t *testing.T) {
 	tests := []struct {
 		name     string
 		fileName string
 	}{
 		{
-			name:     "Non-.m file",
+			name:     "Non-MATLAB file",
 			fileName: "file.txt",
 		},
 		{
@@ -112,6 +182,14 @@ func TestValidator_ValidateMATLABScript_NotMATLABScript(t *testing.T) {
 		{
 			name:     "Capital M",
 			fileName: "script.M",
+		},
+		{
+			name:     "Capital P",
+			fileName: "script.P",
+		},
+		{
+			name:     "Live Script file",
+			fileName: "script.mlx",
 		},
 	}
 
@@ -127,15 +205,15 @@ func TestValidator_ValidateMATLABScript_NotMATLABScript(t *testing.T) {
 			require.NoError(t, absErr)
 
 			// Act
-			_, err := validator.ValidateMATLABScript(filePath)
+			_, err := validator.ValidateMATLABCodeFile(filePath)
 
 			// Assert
-			require.Error(t, err)
+			require.ErrorIs(t, err, pathvalidator.ErrUnsupportedFileExtension)
 		})
 	}
 }
 
-func TestValidator_ValidateMATLABScript_MPathIsAFolder(t *testing.T) {
+func TestValidator_ValidateMATLABCodeFile_PathIsAFolder(t *testing.T) {
 	// Arrange
 	mockOsLayer := &mocks.MockOSLayer{}
 	defer mockOsLayer.AssertExpectations(t)
@@ -160,13 +238,13 @@ func TestValidator_ValidateMATLABScript_MPathIsAFolder(t *testing.T) {
 		Once()
 
 	// Act
-	_, err := validator.ValidateMATLABScript(testPath)
+	_, err := validator.ValidateMATLABCodeFile(testPath)
 
 	// Assert
-	require.Error(t, err)
+	require.ErrorIs(t, err, pathvalidator.ErrPathNotFile)
 }
 
-func TestValidator_ValidateMATLABScript_StatFails(t *testing.T) {
+func TestValidator_ValidateMATLABCodeFile_StatFails(t *testing.T) {
 	// Arrange
 	mockOsLayer := &mocks.MockOSLayer{}
 	defer mockOsLayer.AssertExpectations(t)
@@ -182,13 +260,13 @@ func TestValidator_ValidateMATLABScript_StatFails(t *testing.T) {
 	validator := pathvalidator.New(mockOsLayer)
 
 	// Act
-	_, err := validator.ValidateMATLABScript(testPath)
+	_, err := validator.ValidateMATLABCodeFile(testPath)
 
 	// Assert
-	require.Error(t, err)
+	require.ErrorIs(t, err, pathvalidator.ErrResourceNotFound)
 }
 
-func TestValidator_ValidateMATLABScript_PathCleaning(t *testing.T) {
+func TestValidator_ValidateMATLABCodeFile_PathCleaning(t *testing.T) {
 	testPath, absErr := filepath.Abs("test.m")
 	require.NoError(t, absErr)
 
@@ -236,7 +314,7 @@ func TestValidator_ValidateMATLABScript_PathCleaning(t *testing.T) {
 				Once()
 
 			// Act
-			result, err := validator.ValidateMATLABScript(tt.filePath)
+			result, err := validator.ValidateMATLABCodeFile(tt.filePath)
 
 			// Assert
 			require.NoError(t, err)
@@ -289,7 +367,7 @@ func TestValidator_ValidateFolderPath_FailsForRelativePath(t *testing.T) {
 	_, err := validator.ValidateFolderPath(testPath)
 
 	// Assert
-	require.Error(t, err)
+	require.ErrorIs(t, err, pathvalidator.ErrInvalidAbsolutePath)
 }
 
 func TestValidator_ValidateFolderPath_FailsForFilePath(t *testing.T) {
@@ -319,7 +397,7 @@ func TestValidator_ValidateFolderPath_FailsForFilePath(t *testing.T) {
 	_, err := validator.ValidateFolderPath(testPath)
 
 	// Assert
-	require.Error(t, err)
+	require.ErrorIs(t, err, pathvalidator.ErrPathNotFolder)
 }
 
 func TestValidator_ValidateFolderPath_StatFails(t *testing.T) {
@@ -341,5 +419,5 @@ func TestValidator_ValidateFolderPath_StatFails(t *testing.T) {
 	_, err := validator.ValidateFolderPath(testPath)
 
 	// Assert
-	require.Error(t, err)
+	require.ErrorIs(t, err, pathvalidator.ErrResourceNotFound)
 }

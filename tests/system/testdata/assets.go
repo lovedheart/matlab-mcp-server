@@ -1,4 +1,4 @@
-// Copyright 2025 The MathWorks, Inc.
+// Copyright 2025-2026 The MathWorks, Inc.
 
 package testdata
 
@@ -19,7 +19,7 @@ const matlabFilesRoot = "matlab"
 // CopyToDir extracts the embedded test assets to the specified directory.
 // The targetDir will be created if it does not exist.
 func CopyToDir(targetDir string) error {
-	if err := os.MkdirAll(targetDir, 0o0750); err != nil {
+	if err := os.MkdirAll(targetDir, 0o0700); err != nil {
 		return err
 	}
 
@@ -39,7 +39,7 @@ func CopyToDir(targetDir string) error {
 			targetPath := filepath.Join(targetDir, relPath)
 
 			if d.IsDir() {
-				return os.MkdirAll(targetPath, 0o0750)
+				return os.MkdirAll(targetPath, 0o0700)
 			}
 
 			content, err := matlabFiles.ReadFile(path)

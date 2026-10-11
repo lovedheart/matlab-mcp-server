@@ -19,6 +19,11 @@ var TestMathFunctions = Expectation{
 	Contains: []string{"7 Passed", "0 Failed"},
 }
 
+// TestPCodable expectations for test_pcodable.m
+var TestPCodable = Expectation{
+	Contains: []string{"7 Passed", "0 Failed"},
+}
+
 // CheckCode expectations
 
 // ProblematicCodeExpectedLines contains line numbers that should appear in checkcode output

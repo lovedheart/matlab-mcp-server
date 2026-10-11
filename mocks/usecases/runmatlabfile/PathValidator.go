@@ -35,12 +35,12 @@ func (_m *MockPathValidator) EXPECT() *MockPathValidator_Expecter {
 	return &MockPathValidator_Expecter{mock: &_m.Mock}
 }
 
-// ValidateMATLABScript provides a mock function for the type MockPathValidator
-func (_mock *MockPathValidator) ValidateMATLABScript(filePath string) (string, error) {
+// ValidateMATLABCodeFile provides a mock function for the type MockPathValidator
+func (_mock *MockPathValidator) ValidateMATLABCodeFile(filePath string) (string, error) {
 	ret := _mock.Called(filePath)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ValidateMATLABScript")
+		panic("no return value specified for ValidateMATLABCodeFile")
 	}
 
 	var r0 string
@@ -61,18 +61,18 @@ func (_mock *MockPathValidator) ValidateMATLABScript(filePath string) (string, e
 	return r0, r1
 }
 
-// MockPathValidator_ValidateMATLABScript_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateMATLABScript'
-type MockPathValidator_ValidateMATLABScript_Call struct {
+// MockPathValidator_ValidateMATLABCodeFile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateMATLABCodeFile'
+type MockPathValidator_ValidateMATLABCodeFile_Call struct {
 	*mock.Call
 }
 
-// ValidateMATLABScript is a helper method to define mock.On call
+// ValidateMATLABCodeFile is a helper method to define mock.On call
 //   - filePath string
-func (_e *MockPathValidator_Expecter) ValidateMATLABScript(filePath interface{}) *MockPathValidator_ValidateMATLABScript_Call {
-	return &MockPathValidator_ValidateMATLABScript_Call{Call: _e.mock.On("ValidateMATLABScript", filePath)}
+func (_e *MockPathValidator_Expecter) ValidateMATLABCodeFile(filePath interface{}) *MockPathValidator_ValidateMATLABCodeFile_Call {
+	return &MockPathValidator_ValidateMATLABCodeFile_Call{Call: _e.mock.On("ValidateMATLABCodeFile", filePath)}
 }
 
-func (_c *MockPathValidator_ValidateMATLABScript_Call) Run(run func(filePath string)) *MockPathValidator_ValidateMATLABScript_Call {
+func (_c *MockPathValidator_ValidateMATLABCodeFile_Call) Run(run func(filePath string)) *MockPathValidator_ValidateMATLABCodeFile_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 string
 		if args[0] != nil {
@@ -85,12 +85,12 @@ func (_c *MockPathValidator_ValidateMATLABScript_Call) Run(run func(filePath str
 	return _c
 }
 
-func (_c *MockPathValidator_ValidateMATLABScript_Call) Return(s string, err error) *MockPathValidator_ValidateMATLABScript_Call {
+func (_c *MockPathValidator_ValidateMATLABCodeFile_Call) Return(s string, err error) *MockPathValidator_ValidateMATLABCodeFile_Call {
 	_c.Call.Return(s, err)
 	return _c
 }
 
-func (_c *MockPathValidator_ValidateMATLABScript_Call) RunAndReturn(run func(filePath string) (string, error)) *MockPathValidator_ValidateMATLABScript_Call {
+func (_c *MockPathValidator_ValidateMATLABCodeFile_Call) RunAndReturn(run func(filePath string) (string, error)) *MockPathValidator_ValidateMATLABCodeFile_Call {
 	_c.Call.Return(run)
 	return _c
 }

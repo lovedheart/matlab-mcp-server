@@ -9,5 +9,5 @@ const (
 )
 
 type Args struct {
-	ScriptPath string `json:"script_path" jsonschema:"The full absolute path to the MATLAB test script file. Must be a .m file containing MATLAB unit tests. Example: C:\\Users\\username\\tests\\testMyFunction.m or /home/user/matlab/tests/test_analysis.m."`
+	ScriptPath string `json:"script_path" jsonschema:"The full absolute path to the MATLAB test script file. Must be a MATLAB source file (.m) or P-code file (.p) containing MATLAB unit tests. Example: C:\\Users\\username\\tests\\testMyFunction.m or /home/user/matlab/tests/test_analysis.m."`
 }

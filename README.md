@@ -168,14 +168,14 @@ Customize the behavior of the server by specifying arguments in one of these way
         - `project_path` (string): Absolute path to your project directory. MATLAB sets this directory as the current working folder. Example: `C:\Users\username\matlab-project` or `/home/user/research`.
 
 1. `run_matlab_file`
-    - Executes a MATLAB script and returns the output. The script must be a valid `.m file`.
+    - Executes a MATLAB script and returns the output. The script must be a valid MATLAB source file (`.m`) or P-code file (`.p`). If a MATLAB source file (`.m`) and a P-code file (`.p`) have the same name and are in the same folder, MATLAB runs the `.p` file.
     - Inputs:
-        - `script_path` (string): Absolute path to the MATLAB script file to execute. Must be a valid `.m` file. Example: `C:\Users\username\projects\analysis.m` or `/home/user/matlab/simulation.m`.
+        - `script_path` (string): Absolute path to the MATLAB script file to execute. Must be a valid MATLAB source file (`.m`) or P-code file (`.p`). Example: `C:\Users\username\projects\analysis.m` or `/home/user/matlab/simulation.m`.
 
 1. `run_matlab_test_file`
     - Executes a MATLAB test script and returns comprehensive test results. Designed specifically for MATLAB unit test files that follow MATLAB testing framework conventions.
     - Inputs:
-        - `script_path` (string): Absolute path to the MATLAB test script file. Must be a valid `.m` file containing MATLAB unit tests. Example: `C:\Users\username\tests\testMyFunction.m` or `/home/user/matlab/tests/test_analysis.m`.
+        - `script_path` (string): Absolute path to the MATLAB test script file. Must be a valid MATLAB source file (`.m`) or P-code file (`.p`) containing MATLAB unit tests. Example: `C:\Users\username\tests\testMyFunction.m` or `/home/user/matlab/tests/test_analysis.m`.
 
 ## Resources
 

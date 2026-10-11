@@ -61,7 +61,7 @@ func TestUsecase_Execute_HappyPath(t *testing.T) {
 	expectedCodeIssues := codeIssues
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(expectedScriptPath).
+		ValidateMATLABSourceFile(expectedScriptPath).
 		Return(expectedValidatedPath, nil).
 		Once()
 
@@ -100,7 +100,7 @@ func TestUsecase_Execute_PathValidationError(t *testing.T) {
 	pathValidationErr := fmt.Errorf("invalid script path")
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(expectedScriptPath).
+		ValidateMATLABSourceFile(expectedScriptPath).
 		Return("", pathValidationErr).
 		Once()
 
@@ -135,7 +135,7 @@ func TestUsecase_Execute_AnalyzeCodeError(t *testing.T) {
 	analyzeCodeErr := fmt.Errorf("code analysis failed")
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(expectedScriptPath).
+		ValidateMATLABSourceFile(expectedScriptPath).
 		Return(expectedValidatedPath, nil).
 		Once()
 
@@ -175,7 +175,7 @@ func TestUsecase_Execute_EmptyIssues(t *testing.T) {
 	codeIssues := []checkmatlabcode.CodeIssue{}
 
 	mockPathValidator.EXPECT().
-		ValidateMATLABScript(expectedScriptPath).
+		ValidateMATLABSourceFile(expectedScriptPath).
 		Return(expectedValidatedPath, nil).
 		Once()
 

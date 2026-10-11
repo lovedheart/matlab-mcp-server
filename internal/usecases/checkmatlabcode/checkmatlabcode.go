@@ -28,7 +28,7 @@ type ReturnArgs struct {
 }
 
 type PathValidator interface {
-	ValidateMATLABScript(filePath string) (string, error)
+	ValidateMATLABSourceFile(filePath string) (string, error)
 }
 
 type CodeAnalyzer interface {
@@ -54,7 +54,7 @@ func (u *Usecase) Execute(ctx context.Context, sessionLogger entities.Logger, cl
 	sessionLogger.Debug("Entering CheckMATLABCode Usecase")
 	defer sessionLogger.Debug("Exiting CheckMATLABCode Usecase")
 
-	validatedPath, err := u.pathValidator.ValidateMATLABScript(request.ScriptPath)
+	validatedPath, err := u.pathValidator.ValidateMATLABSourceFile(request.ScriptPath)
 	if err != nil {
 		return ReturnArgs{}, fmt.Errorf("path validation failed: %w", err)
 	}
