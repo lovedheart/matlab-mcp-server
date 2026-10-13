@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := os.WriteFile(outputFile, data, 0o600); err != nil {
+	if err := os.WriteFile(outputFile, data, 0o600); err != nil { //nolint:gosec // test controls the output path
 		os.Exit(1)
 	}
 }

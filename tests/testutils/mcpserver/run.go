@@ -13,7 +13,7 @@ import (
 
 func Run(t *testing.T, binaryPath string, flags []string, env map[string]string) string {
 	t.Helper()
-	cmd := exec.CommandContext(t.Context(), binaryPath, flags...)
+	cmd := exec.CommandContext(t.Context(), binaryPath, flags...) //nolint:gosec // test controls the server binary path
 	if len(env) > 0 {
 		cmd.Env = os.Environ()
 		for k, v := range env {

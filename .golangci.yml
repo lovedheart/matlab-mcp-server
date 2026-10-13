@@ -20,7 +20,7 @@ linters:
     - staticcheck
     - nolintlint
     - iface
-    - gomodguard
+    - gomodguard_v2
     - testableexamples
   disable:
     # Maybe enable
@@ -36,17 +36,24 @@ linters:
     - nlreturn
     - godot
   settings:
-    gomodguard:
+    gomodguard_v2:
       allowed:
-        domains:
-          - golang.org
-          - github.com/google/jsonschema-go
-          - github.com/modelcontextprotocol
-          - github.com/stretchr/testify
-          - github.com/google/uuid
-          - github.com/spf13/pflag
-          - go.opentelemetry.io/otel
-          - go.opentelemetry.io/collector
+        - module: golang.org
+          match-type: prefix
+        - module: github.com/google/jsonschema-go
+          match-type: prefix
+        - module: github.com/modelcontextprotocol
+          match-type: prefix
+        - module: github.com/stretchr/testify
+          match-type: prefix
+        - module: github.com/google/uuid
+          match-type: prefix
+        - module: github.com/spf13/pflag
+          match-type: prefix
+        - module: go.opentelemetry.io/otel
+          match-type: prefix
+        - module: go.opentelemetry.io/collector
+          match-type: prefix
     depguard:
       rules:
         # Rule #1: pkg/* may only import internal/adaptors/sdk

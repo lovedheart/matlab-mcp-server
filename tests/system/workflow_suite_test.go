@@ -258,7 +258,7 @@ func (s *WorkflowTestSuite) TestSetupMATLABWorkflow() {
 
 	runMATLAB := func(code string) (string, error) {
 		s.T().Helper()
-		cmd := exec.CommandContext(ctx, "matlab", "-batch", code)
+		cmd := exec.CommandContext(ctx, "matlab", "-batch", code) //nolint:gosec // test controls the MATLAB code
 		output, err := cmd.CombinedOutput()
 		return string(output), err
 	}

@@ -39,7 +39,7 @@ func startConnectorServer(ctx context.Context, sessionDir, apiKey string, tlsCfg
 	}
 
 	portFile := filepath.Join(sessionDir, "connector.securePort")
-	if err := os.WriteFile(portFile, []byte(port), 0o600); err != nil {
+	if err := os.WriteFile(portFile, []byte(port), 0o600); err != nil { //nolint:gosec // path is built from the mock session directory
 		closeListenerWithLog(listener)
 		return fmt.Errorf("failed to write port file: %w", err)
 	}

@@ -31,6 +31,6 @@ func (f BinaryBuilderFunc) BuildPlatformSpecificBinaries(moduleDir, binDir strin
 }
 
 func commandOutput(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) //nolint:gosec // test controls the command
 	return cmd.Output()
 }

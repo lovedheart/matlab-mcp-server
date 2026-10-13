@@ -10,7 +10,7 @@ import (
 )
 
 func Check(path string) error {
-	cmd := exec.Command("bash", "-n", path)
+	cmd := exec.Command("bash", "-n", path) //nolint:gosec // test controls the script path
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("syntax errors: %s", output)

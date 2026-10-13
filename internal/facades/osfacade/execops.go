@@ -31,7 +31,7 @@ type Cmd interface {
 // Command wraps the exec.Command
 func (osw *OsFacade) Command(name string, arg ...string) Cmd {
 	return &CmdWrapper{
-		Cmd: exec.Command(name, arg...),
+		Cmd: exec.Command(name, arg...), //nolint:gosec // Intentional exec.Command usage in facade
 	}
 }
 

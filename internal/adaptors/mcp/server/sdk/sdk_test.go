@@ -1001,7 +1001,7 @@ func TestRecordClientConnection_LegacyRootsOnly_Excluded(t *testing.T) {
 		InitializeParams().
 		Return(&mcp.InitializeParams{
 			Capabilities: &mcp.ClientCapabilities{
-				Roots: struct {
+				Roots: struct { //nolint:staticcheck // test deliberately sets the legacy Roots field
 					ListChanged bool `json:"listChanged,omitempty"`
 				}{ListChanged: true},
 			},
@@ -1044,7 +1044,7 @@ func TestRecordClientConnection_RootsV2OverridesLegacyRoots(t *testing.T) {
 		InitializeParams().
 		Return(&mcp.InitializeParams{
 			Capabilities: &mcp.ClientCapabilities{
-				Roots: struct {
+				Roots: struct { //nolint:staticcheck // test deliberately sets the legacy Roots field
 					ListChanged bool `json:"listChanged,omitempty"`
 				}{ListChanged: false},
 				RootsV2: &mcp.RootCapabilities{ListChanged: true},

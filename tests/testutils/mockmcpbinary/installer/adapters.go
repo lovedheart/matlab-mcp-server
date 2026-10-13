@@ -27,7 +27,7 @@ func (GoListModuleRootFinder) FindModuleRoot() (string, error) {
 type GoBinaryBuilder struct{}
 
 func (GoBinaryBuilder) Build(sourceDir, outputPath string) error {
-	cmd := exec.Command("go", "build", "-o", outputPath, ".")
+	cmd := exec.Command("go", "build", "-o", outputPath, ".") //nolint:gosec // test controls the output path
 	cmd.Dir = sourceDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {

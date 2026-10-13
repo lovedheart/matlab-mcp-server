@@ -78,7 +78,7 @@ func NewClientWithoutRootsCapability(ctx context.Context, serverPath string, env
 }
 
 func newClient(ctx context.Context, serverPath string, env []string, clientOpts *mcp.ClientOptions, args ...string) *MCPClient {
-	cmd := exec.CommandContext(ctx, serverPath, args...)
+	cmd := exec.CommandContext(ctx, serverPath, args...) //nolint:gosec // test controls the server binary path
 	stderr := &syncBuffer{}
 	cmd.Stderr = stderr
 	if env != nil {

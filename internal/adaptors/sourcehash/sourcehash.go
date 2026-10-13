@@ -92,7 +92,7 @@ func Check(hashFile, sourceDir string) error {
 }
 
 func gitTrackedFiles(dir string) ([]string, error) {
-	cmd := exec.Command("git", "-C", dir, "ls-files", ".")
+	cmd := exec.Command("git", "-C", dir, "ls-files", ".") //nolint:gosec // dir comes from trusted caller, git arguments are fixed
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("git ls-files: %w", err)
