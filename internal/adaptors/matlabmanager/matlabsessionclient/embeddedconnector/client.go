@@ -31,6 +31,18 @@ type ConnectionDetails struct {
 	APIKey         string
 	CertificatePEM []byte
 	BasePath       string
+
+	// SessionID identifies the MATLAB session that shared itself via
+	// shareMATLABSession. Empty for sessions launched by the server or
+	// specified inline via configuration.
+	SessionID string
+	// SessionDetailsPath is the path of the sessionDetails file the
+	// session was discovered from. Empty when not discovered from disk.
+	SessionDetailsPath string
+	// AgentConnectedPath is the path of the beacon file the server writes
+	// after attaching, so the shared MATLAB session can detect that an
+	// agent is connected. Empty when not discovered from disk.
+	AgentConnectedPath string
 }
 
 type Client struct {

@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"time"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -33,6 +35,128 @@ type MockOSLayer_Expecter struct {
 
 func (_m *MockOSLayer) EXPECT() *MockOSLayer_Expecter {
 	return &MockOSLayer_Expecter{mock: &_m.Mock}
+}
+
+// Glob provides a mock function for the type MockOSLayer
+func (_mock *MockOSLayer) Glob(pattern string) ([]string, error) {
+	ret := _mock.Called(pattern)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Glob")
+	}
+
+	var r0 []string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) ([]string, error)); ok {
+		return returnFunc(pattern)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) []string); ok {
+		r0 = returnFunc(pattern)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(pattern)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOSLayer_Glob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Glob'
+type MockOSLayer_Glob_Call struct {
+	*mock.Call
+}
+
+// Glob is a helper method to define mock.On call
+//   - pattern string
+func (_e *MockOSLayer_Expecter) Glob(pattern interface{}) *MockOSLayer_Glob_Call {
+	return &MockOSLayer_Glob_Call{Call: _e.mock.On("Glob", pattern)}
+}
+
+func (_c *MockOSLayer_Glob_Call) Run(run func(pattern string)) *MockOSLayer_Glob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOSLayer_Glob_Call) Return(strings []string, err error) *MockOSLayer_Glob_Call {
+	_c.Call.Return(strings, err)
+	return _c
+}
+
+func (_c *MockOSLayer_Glob_Call) RunAndReturn(run func(pattern string) ([]string, error)) *MockOSLayer_Glob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ModTime provides a mock function for the type MockOSLayer
+func (_mock *MockOSLayer) ModTime(filePath string) (time.Time, error) {
+	ret := _mock.Called(filePath)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ModTime")
+	}
+
+	var r0 time.Time
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(string) (time.Time, error)); ok {
+		return returnFunc(filePath)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) time.Time); ok {
+		r0 = returnFunc(filePath)
+	} else {
+		r0 = ret.Get(0).(time.Time)
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(filePath)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOSLayer_ModTime_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ModTime'
+type MockOSLayer_ModTime_Call struct {
+	*mock.Call
+}
+
+// ModTime is a helper method to define mock.On call
+//   - filePath string
+func (_e *MockOSLayer_Expecter) ModTime(filePath interface{}) *MockOSLayer_ModTime_Call {
+	return &MockOSLayer_ModTime_Call{Call: _e.mock.On("ModTime", filePath)}
+}
+
+func (_c *MockOSLayer_ModTime_Call) Run(run func(filePath string)) *MockOSLayer_ModTime_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOSLayer_ModTime_Call) Return(time1 time.Time, err error) *MockOSLayer_ModTime_Call {
+	_c.Call.Return(time1, err)
+	return _c
+}
+
+func (_c *MockOSLayer_ModTime_Call) RunAndReturn(run func(filePath string) (time.Time, error)) *MockOSLayer_ModTime_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // ReadFile provides a mock function for the type MockOSLayer

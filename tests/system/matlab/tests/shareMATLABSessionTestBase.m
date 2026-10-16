@@ -62,14 +62,18 @@ classdef (Abstract) shareMATLABSessionTestBase < matlab.unittest.TestCase
             % Arrange
             expectedAppDataFolder = testCase.getExpectedAppDataFolder();
             expectedV1Folder = fullfile(expectedAppDataFolder, "v1");
-            expectedSessionDetailsPath = fullfile(expectedV1Folder, "sessionDetails.json");
+            expectedSessionDetailsPath = fullfile(expectedV1Folder, ...
+                sprintf("sessionDetails_%d.json", feature("getpid")));
+            expectedLegacySessionDetailsPath = fullfile(expectedV1Folder, "sessionDetails.json");
 
             % Act
             shareMATLABSession();
 
-            % Assert - File exists
+            % Assert - Files exist
             testCase.verifyTrue(isfile(expectedSessionDetailsPath), ...
-                "sessionDetails.json should exist");
+                "per-session sessionDetails file should exist");
+            testCase.verifyTrue(isfile(expectedLegacySessionDetailsPath), ...
+                "canonical sessionDetails.json should exist");
 
             % Assert - Check permissions
             testCase.verifyFolderPermissions(expectedAppDataFolder);
@@ -88,7 +92,14 @@ classdef (Abstract) shareMATLABSessionTestBase < matlab.unittest.TestCase
 
             % Act - call twice to verify idempotency
             shareMATLABSession();
+            firstSessionID = testCase.readSessionID(expectedSessionDetailsPath);
             shareMATLABSession();
+            secondSessionID = testCase.readSessionID(expectedSessionDetailsPath);
+
+            % Assert - Session ID stays stable across repeated calls
+            testCase.verifyNotEmpty(firstSessionID, "first share should publish a Session ID");
+            testCase.verifyEqual(firstSessionID, secondSessionID, ...
+                "Session ID must not change between shareMATLABSession calls");
 
             % Assert - File exists after second call
             testCase.verifyTrue(isfile(expectedSessionDetailsPath), ...
@@ -142,9 +153,29 @@ classdef (Abstract) shareMATLABSessionTestBase < matlab.unittest.TestCase
             jsonText = fileread(path);
             actualDetails = jsondecode(jsonText);
 
-            % Verify exact match
-            testCase.verifyEqual(actualDetails, expectedDetails, ...
-                "sessionDetails.json should contain exact connection details");
+            % Verify exact match on the connection fields
+            testCase.verifyEqual(actualDetails.port, expectedDetails.port);
+            testCase.verifyEqual(actualDetails.certificate, expectedDetails.certificate);
+            testCase.verifyEqual(actualDetails.apiKey, expectedDetails.apiKey);
+            testCase.verifyEqual(actualDetails.pid, expectedDetails.pid);
+            testCase.verifyEqual(actualDetails.basePath, expectedDetails.basePath);
+
+            % Verify a stable Session ID is published
+            testCase.verifyTrue(isfield(actualDetails, "sessionId"), ...
+                "session details should contain a sessionId field");
+            testCase.verifyNotEmpty(string(actualDetails.sessionId), ...
+                "sessionId should not be empty");
+        end
+
+        function sessionID = readSessionID(testCase, path)
+            %readSessionID Read the Session ID published in a details file
+            testCase.verifyFileExists(path);
+            actualDetails = jsondecode(fileread(path));
+            if isfield(actualDetails, "sessionId")
+                sessionID = string(actualDetails.sessionId);
+            else
+                sessionID = "";
+            end
         end
     end
 

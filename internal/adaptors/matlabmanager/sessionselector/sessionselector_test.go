@@ -30,7 +30,7 @@ func TestNew_HappyPath(t *testing.T) {
 	assert.NotNil(t, attacher)
 }
 
-func TestSessionSelector_SelectSessionToAttachTo_WithSessionDetails_HappyPath(t *testing.T) {
+func TestSessionSelector_SelectSessionsToAttachTo_WithSessionDetails_HappyPath(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -69,14 +69,14 @@ func TestSessionSelector_SelectSessionToAttachTo_WithSessionDetails_HappyPath(t 
 	attacher := sessionselector.New(mockConfigFactory, mockSessionDiscoverer)
 
 	// Act
-	connectionDetails, err := attacher.SelectSessionToAttachTo(mockLogger)
+	connectionDetails, err := attacher.SelectSessionsToAttachTo(mockLogger)
 
 	// Assert
 	require.NoError(t, err)
-	assert.Equal(t, expectedConnectionDetails, connectionDetails)
+	assert.Equal(t, []embeddedconnector.ConnectionDetails{expectedConnectionDetails}, connectionDetails)
 }
 
-func TestSessionSelector_SelectSessionToAttachTo_Discovery_HappyPath(t *testing.T) {
+func TestSessionSelector_SelectSessionsToAttachTo_Discovery_HappyPath(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -94,6 +94,7 @@ func TestSessionSelector_SelectSessionToAttachTo_Discovery_HappyPath(t *testing.
 		Port:           "31515",
 		APIKey:         "test-api-key",
 		CertificatePEM: []byte("cert-content"),
+		SessionID:      "session-id",
 	}
 
 	mockConfigFactory.EXPECT().
@@ -114,14 +115,14 @@ func TestSessionSelector_SelectSessionToAttachTo_Discovery_HappyPath(t *testing.
 	attacher := sessionselector.New(mockConfigFactory, mockSessionDiscoverer)
 
 	// Act
-	connectionDetails, err := attacher.SelectSessionToAttachTo(mockLogger)
+	connectionDetails, err := attacher.SelectSessionsToAttachTo(mockLogger)
 
 	// Assert
 	require.NoError(t, err)
-	assert.Equal(t, expectedConnectionDetails, connectionDetails)
+	assert.Equal(t, []embeddedconnector.ConnectionDetails{expectedConnectionDetails}, connectionDetails)
 }
 
-func TestSessionSelector_SelectSessionToAttachTo_Discovery_MultipleSessionsUsesFirst(t *testing.T) {
+func TestSessionSelector_SelectSessionsToAttachTo_Discovery_MultipleSessions(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -146,7 +147,6 @@ func TestSessionSelector_SelectSessionToAttachTo_Discovery_MultipleSessionsUsesF
 		APIKey:         "second-api-key",
 		CertificatePEM: []byte("second-cert"),
 	}
-	expectedConnectionDetails := firstConnectionDetails
 
 	mockConfigFactory.EXPECT().
 		Config().
@@ -166,14 +166,14 @@ func TestSessionSelector_SelectSessionToAttachTo_Discovery_MultipleSessionsUsesF
 	attacher := sessionselector.New(mockConfigFactory, mockSessionDiscoverer)
 
 	// Act
-	connectionDetails, err := attacher.SelectSessionToAttachTo(mockLogger)
+	connectionDetails, err := attacher.SelectSessionsToAttachTo(mockLogger)
 
 	// Assert
 	require.NoError(t, err)
-	assert.Equal(t, expectedConnectionDetails, connectionDetails)
+	assert.Equal(t, []embeddedconnector.ConnectionDetails{firstConnectionDetails, secondConnectionDetails}, connectionDetails)
 }
 
-func TestSessionSelector_SelectSessionToAttachTo_ConfigFactoryError(t *testing.T) {
+func TestSessionSelector_SelectSessionsToAttachTo_ConfigFactoryError(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -191,14 +191,14 @@ func TestSessionSelector_SelectSessionToAttachTo_ConfigFactoryError(t *testing.T
 	attacher := sessionselector.New(mockConfigFactory, mockSessionDiscoverer)
 
 	// Act
-	connectionDetails, err := attacher.SelectSessionToAttachTo(mockLogger)
+	connectionDetails, err := attacher.SelectSessionsToAttachTo(mockLogger)
 
 	// Assert
 	require.ErrorIs(t, err, messages.AnError)
 	assert.Empty(t, connectionDetails)
 }
 
-func TestSessionSelector_SelectSessionToAttachTo_WithSessionDetails_FromSessionDetailsError(t *testing.T) {
+func TestSessionSelector_SelectSessionsToAttachTo_WithSessionDetails_FromSessionDetailsError(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -231,14 +231,14 @@ func TestSessionSelector_SelectSessionToAttachTo_WithSessionDetails_FromSessionD
 	attacher := sessionselector.New(mockConfigFactory, mockSessionDiscoverer)
 
 	// Act
-	connectionDetails, err := attacher.SelectSessionToAttachTo(mockLogger)
+	connectionDetails, err := attacher.SelectSessionsToAttachTo(mockLogger)
 
 	// Assert
 	require.ErrorIs(t, err, assert.AnError)
 	assert.Empty(t, connectionDetails)
 }
 
-func TestSessionSelector_SelectSessionToAttachTo_Discovery_NoSessionsDiscovered(t *testing.T) {
+func TestSessionSelector_SelectSessionsToAttachTo_Discovery_NoSessionsDiscovered(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -269,7 +269,7 @@ func TestSessionSelector_SelectSessionToAttachTo_Discovery_NoSessionsDiscovered(
 	attacher := sessionselector.New(mockConfigFactory, mockSessionDiscoverer)
 
 	// Act
-	connectionDetails, err := attacher.SelectSessionToAttachTo(mockLogger)
+	connectionDetails, err := attacher.SelectSessionsToAttachTo(mockLogger)
 
 	// Assert
 	require.ErrorIs(t, err, sessionselector.ErrNoMATLABSessionDiscovered)

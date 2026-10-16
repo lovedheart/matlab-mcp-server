@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/matlab/matlab-mcp-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery"
 	"github.com/matlab/matlab-mcp-server/internal/testutils"
@@ -456,6 +457,11 @@ func TestSessionDiscoverer_DiscoverSessions_HappyPath(t *testing.T) {
 
 	expectedSessionFile := filepath.Join(expectedAppDataDir, "v1", "sessionDetails.json")
 	mockOSLayer.EXPECT().
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return([]string{expectedSessionFile}, nil).
+		Once()
+
+	mockOSLayer.EXPECT().
 		ReadFile(expectedSessionFile).
 		Return(sessionJSON, nil).
 		Once()
@@ -463,6 +469,10 @@ func TestSessionDiscoverer_DiscoverSessions_HappyPath(t *testing.T) {
 	mockOSLayer.EXPECT().
 		ReadFile(expectedCertPath).
 		Return(expectedCertPEM, nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ModTime(expectedSessionFile).
+		Return(time.Time{}, nil).
 		Once()
 
 	discoverer := sessiondiscovery.New(mockAppDataDirGetter, mockOSLayer)
@@ -476,6 +486,88 @@ func TestSessionDiscoverer_DiscoverSessions_HappyPath(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%d", expectedPort), sessions[0].Port)
 	assert.Equal(t, expectedAPIKey, sessions[0].APIKey)
 	assert.Equal(t, expectedCertPEM, sessions[0].CertificatePEM)
+	assert.Empty(t, sessions[0].SessionID)
+	assert.Equal(t, expectedSessionFile, sessions[0].SessionDetailsPath)
+	assert.Equal(t, filepath.Join(expectedAppDataDir, "v1", "agentConnected.json"), sessions[0].AgentConnectedPath)
+}
+
+func TestSessionDiscoverer_DiscoverSessions_MultipleSessions(t *testing.T) {
+	// Arrange
+	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
+	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
+
+	mockLogger := testutils.NewInspectableLogger()
+
+	expectedAppDataDir := filepath.Join("home", "user", "MATLABMCPServer")
+	expectedCertPath := filepath.Join("path", "to", "cert.pem")
+	expectedCertPEM := []byte("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----")
+
+	fileForPID100 := filepath.Join(expectedAppDataDir, "v1", "sessionDetails_100.json")
+	fileForPID50 := filepath.Join(expectedAppDataDir, "v1", "sessionDetails_50.json")
+
+	sessionJSONForPID100 := marshallSessionDetails(t, map[string]any{
+		"port":        31516,
+		"certificate": expectedCertPath,
+		"apiKey":      "test-api-key",
+		"pid":         100,
+		"sessionId":   "session-id-100",
+	})
+	sessionJSONForPID50 := marshallSessionDetails(t, map[string]any{
+		"port":        31515,
+		"certificate": expectedCertPath,
+		"apiKey":      "test-api-key",
+		"pid":         50,
+		"sessionId":   "session-id-50",
+	})
+
+	mockAppDataDirGetter.EXPECT().
+		AppDataDir().
+		Return(expectedAppDataDir, nil).
+		Once()
+
+	mockOSLayer.EXPECT().
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return([]string{fileForPID100, fileForPID50}, nil).
+		Once()
+
+	mockOSLayer.EXPECT().
+		ReadFile(fileForPID100).
+		Return(sessionJSONForPID100, nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ReadFile(fileForPID50).
+		Return(sessionJSONForPID50, nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ReadFile(expectedCertPath).
+		Return(expectedCertPEM, nil).
+		Times(2)
+	mockOSLayer.EXPECT().
+		ModTime(fileForPID100).
+		Return(time.Time{}, nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ModTime(fileForPID50).
+		Return(time.Time{}, nil).
+		Once()
+
+	discoverer := sessiondiscovery.New(mockAppDataDirGetter, mockOSLayer)
+
+	// Act
+	sessions := discoverer.DiscoverSessions(mockLogger)
+
+	// Assert - sorted by PID ascending
+	require.Len(t, sessions, 2)
+	assert.Equal(t, "session-id-50", sessions[0].SessionID)
+	assert.Equal(t, "31515", sessions[0].Port)
+	assert.Equal(t, fileForPID50, sessions[0].SessionDetailsPath)
+	assert.Equal(t, filepath.Join(expectedAppDataDir, "v1", "agentConnected_50.json"), sessions[0].AgentConnectedPath)
+	assert.Equal(t, "session-id-100", sessions[1].SessionID)
+	assert.Equal(t, "31516", sessions[1].Port)
+	assert.Equal(t, filepath.Join(expectedAppDataDir, "v1", "agentConnected_100.json"), sessions[1].AgentConnectedPath)
 }
 
 func TestSessionDiscoverer_DiscoverSessions_AppDataDirError(t *testing.T) {
@@ -520,10 +612,9 @@ func TestSessionDiscoverer_DiscoverSessions_SessionFileNotFound(t *testing.T) {
 		Return(expectedAppDataDir, nil).
 		Once()
 
-	expectedSessionFile := filepath.Join(expectedAppDataDir, "v1", "sessionDetails.json")
 	mockOSLayer.EXPECT().
-		ReadFile(expectedSessionFile).
-		Return(nil, assert.AnError).
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return(nil, nil).
 		Once()
 
 	discoverer := sessiondiscovery.New(mockAppDataDirGetter, mockOSLayer)
@@ -554,6 +645,10 @@ func TestSessionDiscoverer_DiscoverSessions_InvalidJSON(t *testing.T) {
 		Once()
 
 	expectedSessionFile := filepath.Join(expectedAppDataDir, "v1", "sessionDetails.json")
+	mockOSLayer.EXPECT().
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return([]string{expectedSessionFile}, nil).
+		Once()
 	mockOSLayer.EXPECT().
 		ReadFile(expectedSessionFile).
 		Return([]byte("not valid json"), nil).
@@ -589,6 +684,10 @@ func TestSessionDiscoverer_DiscoverSessions_InvalidPort(t *testing.T) {
 		Once()
 
 	expectedSessionFile := filepath.Join(expectedAppDataDir, "v1", "sessionDetails.json")
+	mockOSLayer.EXPECT().
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return([]string{expectedSessionFile}, nil).
+		Once()
 	mockOSLayer.EXPECT().
 		ReadFile(expectedSessionFile).
 		Return(sessionJSON, nil).
@@ -631,6 +730,10 @@ func TestSessionDiscoverer_DiscoverSessions_CertificateReadError(t *testing.T) {
 
 	expectedSessionFile := filepath.Join(expectedAppDataDir, "v1", "sessionDetails.json")
 	mockOSLayer.EXPECT().
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return([]string{expectedSessionFile}, nil).
+		Once()
+	mockOSLayer.EXPECT().
 		ReadFile(expectedSessionFile).
 		Return(sessionJSON, nil).
 		Once()
@@ -657,4 +760,80 @@ func marshallSessionDetails(t *testing.T, rawData map[string]any) []byte {
 	require.NoError(t, err, "Failed to marshall session details")
 
 	return data
+}
+
+func TestSessionDiscoverer_DiscoverSessions_MostRecentlySharedFirst(t *testing.T) {
+	// Arrange
+	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
+	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
+
+	mockLogger := testutils.NewInspectableLogger()
+
+	expectedAppDataDir := filepath.Join("home", "user", "MATLABMCPServer")
+	expectedCertPath := filepath.Join("path", "to", "cert.pem")
+	expectedCertPEM := []byte("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----")
+
+	fileForPID10 := filepath.Join(expectedAppDataDir, "v1", "sessionDetails_10.json")
+	fileForPID20 := filepath.Join(expectedAppDataDir, "v1", "sessionDetails_20.json")
+
+	sessionJSONForPID10 := marshallSessionDetails(t, map[string]any{
+		"port":        31515,
+		"certificate": expectedCertPath,
+		"apiKey":      "test-api-key",
+		"pid":         10,
+		"sessionId":   "session-id-10",
+	})
+	sessionJSONForPID20 := marshallSessionDetails(t, map[string]any{
+		"port":        31516,
+		"certificate": expectedCertPath,
+		"apiKey":      "test-api-key",
+		"pid":         20,
+		"sessionId":   "session-id-20",
+	})
+
+	mockAppDataDirGetter.EXPECT().
+		AppDataDir().
+		Return(expectedAppDataDir, nil).
+		Once()
+
+	mockOSLayer.EXPECT().
+		Glob(filepath.Join(expectedAppDataDir, "v1", "sessionDetails*.json")).
+		Return([]string{fileForPID10, fileForPID20}, nil).
+		Once()
+
+	mockOSLayer.EXPECT().
+		ReadFile(fileForPID10).
+		Return(sessionJSONForPID10, nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ReadFile(fileForPID20).
+		Return(sessionJSONForPID20, nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ReadFile(expectedCertPath).
+		Return(expectedCertPEM, nil).
+		Times(2)
+
+	// PID 20 shared more recently than PID 10.
+	mockOSLayer.EXPECT().
+		ModTime(fileForPID10).
+		Return(time.Date(2026, 10, 15, 10, 0, 0, 0, time.UTC), nil).
+		Once()
+	mockOSLayer.EXPECT().
+		ModTime(fileForPID20).
+		Return(time.Date(2026, 10, 15, 11, 0, 0, 0, time.UTC), nil).
+		Once()
+
+	discoverer := sessiondiscovery.New(mockAppDataDirGetter, mockOSLayer)
+
+	// Act
+	sessions := discoverer.DiscoverSessions(mockLogger)
+
+	// Assert - most recently shared session first
+	require.Len(t, sessions, 2)
+	assert.Equal(t, "session-id-20", sessions[0].SessionID)
+	assert.Equal(t, "session-id-10", sessions[1].SessionID)
 }

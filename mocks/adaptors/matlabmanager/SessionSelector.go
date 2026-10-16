@@ -37,23 +37,25 @@ func (_m *MockSessionSelector) EXPECT() *MockSessionSelector_Expecter {
 	return &MockSessionSelector_Expecter{mock: &_m.Mock}
 }
 
-// SelectSessionToAttachTo provides a mock function for the type MockSessionSelector
-func (_mock *MockSessionSelector) SelectSessionToAttachTo(logger entities.Logger) (embeddedconnector.ConnectionDetails, error) {
+// SelectSessionsToAttachTo provides a mock function for the type MockSessionSelector
+func (_mock *MockSessionSelector) SelectSessionsToAttachTo(logger entities.Logger) ([]embeddedconnector.ConnectionDetails, error) {
 	ret := _mock.Called(logger)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SelectSessionToAttachTo")
+		panic("no return value specified for SelectSessionsToAttachTo")
 	}
 
-	var r0 embeddedconnector.ConnectionDetails
+	var r0 []embeddedconnector.ConnectionDetails
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(entities.Logger) (embeddedconnector.ConnectionDetails, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(entities.Logger) ([]embeddedconnector.ConnectionDetails, error)); ok {
 		return returnFunc(logger)
 	}
-	if returnFunc, ok := ret.Get(0).(func(entities.Logger) embeddedconnector.ConnectionDetails); ok {
+	if returnFunc, ok := ret.Get(0).(func(entities.Logger) []embeddedconnector.ConnectionDetails); ok {
 		r0 = returnFunc(logger)
 	} else {
-		r0 = ret.Get(0).(embeddedconnector.ConnectionDetails)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]embeddedconnector.ConnectionDetails)
+		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(entities.Logger) error); ok {
 		r1 = returnFunc(logger)
@@ -63,18 +65,18 @@ func (_mock *MockSessionSelector) SelectSessionToAttachTo(logger entities.Logger
 	return r0, r1
 }
 
-// MockSessionSelector_SelectSessionToAttachTo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SelectSessionToAttachTo'
-type MockSessionSelector_SelectSessionToAttachTo_Call struct {
+// MockSessionSelector_SelectSessionsToAttachTo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SelectSessionsToAttachTo'
+type MockSessionSelector_SelectSessionsToAttachTo_Call struct {
 	*mock.Call
 }
 
-// SelectSessionToAttachTo is a helper method to define mock.On call
+// SelectSessionsToAttachTo is a helper method to define mock.On call
 //   - logger entities.Logger
-func (_e *MockSessionSelector_Expecter) SelectSessionToAttachTo(logger interface{}) *MockSessionSelector_SelectSessionToAttachTo_Call {
-	return &MockSessionSelector_SelectSessionToAttachTo_Call{Call: _e.mock.On("SelectSessionToAttachTo", logger)}
+func (_e *MockSessionSelector_Expecter) SelectSessionsToAttachTo(logger interface{}) *MockSessionSelector_SelectSessionsToAttachTo_Call {
+	return &MockSessionSelector_SelectSessionsToAttachTo_Call{Call: _e.mock.On("SelectSessionsToAttachTo", logger)}
 }
 
-func (_c *MockSessionSelector_SelectSessionToAttachTo_Call) Run(run func(logger entities.Logger)) *MockSessionSelector_SelectSessionToAttachTo_Call {
+func (_c *MockSessionSelector_SelectSessionsToAttachTo_Call) Run(run func(logger entities.Logger)) *MockSessionSelector_SelectSessionsToAttachTo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 entities.Logger
 		if args[0] != nil {
@@ -87,12 +89,12 @@ func (_c *MockSessionSelector_SelectSessionToAttachTo_Call) Run(run func(logger 
 	return _c
 }
 
-func (_c *MockSessionSelector_SelectSessionToAttachTo_Call) Return(connectionDetails embeddedconnector.ConnectionDetails, err error) *MockSessionSelector_SelectSessionToAttachTo_Call {
-	_c.Call.Return(connectionDetails, err)
+func (_c *MockSessionSelector_SelectSessionsToAttachTo_Call) Return(connectionDetailss []embeddedconnector.ConnectionDetails, err error) *MockSessionSelector_SelectSessionsToAttachTo_Call {
+	_c.Call.Return(connectionDetailss, err)
 	return _c
 }
 
-func (_c *MockSessionSelector_SelectSessionToAttachTo_Call) RunAndReturn(run func(logger entities.Logger) (embeddedconnector.ConnectionDetails, error)) *MockSessionSelector_SelectSessionToAttachTo_Call {
+func (_c *MockSessionSelector_SelectSessionsToAttachTo_Call) RunAndReturn(run func(logger entities.Logger) ([]embeddedconnector.ConnectionDetails, error)) *MockSessionSelector_SelectSessionsToAttachTo_Call {
 	_c.Call.Return(run)
 	return _c
 }

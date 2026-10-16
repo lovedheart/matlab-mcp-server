@@ -34,10 +34,10 @@ func New(configFactory ConfigFactory, sessionDiscoverer SessionDiscoverer) *Sess
 	}
 }
 
-func (s *SessionSelector) SelectSessionToAttachTo(logger entities.Logger) (embeddedconnector.ConnectionDetails, error) {
+func (s *SessionSelector) SelectSessionsToAttachTo(logger entities.Logger) ([]embeddedconnector.ConnectionDetails, error) {
 	config, err := s.configFactory.Config()
 	if err != nil {
-		return embeddedconnector.ConnectionDetails{}, err
+		return nil, err
 	}
 
 	sessionDetails := config.MATLABSessionConnectionDetails()
@@ -47,18 +47,23 @@ func (s *SessionSelector) SelectSessionToAttachTo(logger entities.Logger) (embed
 
 		connectionDetails, err := s.sessionDiscoverer.FromSessionDetails(logger, []byte(sessionDetails))
 		if err != nil {
-			return embeddedconnector.ConnectionDetails{}, err
+			return nil, err
 		}
 
-		return connectionDetails, nil
+		return []embeddedconnector.ConnectionDetails{connectionDetails}, nil
 	}
 
 	logger.Debug("Discovering existing MATLAB sessions to attach to")
 
 	discoveredSessions := s.sessionDiscoverer.DiscoverSessions(logger)
 	if len(discoveredSessions) == 0 {
-		return embeddedconnector.ConnectionDetails{}, ErrNoMATLABSessionDiscovered
+		return nil, ErrNoMATLABSessionDiscovered
 	}
 
-	return discoveredSessions[0], nil
+	if len(discoveredSessions) > 1 {
+		logger.With("session-count", len(discoveredSessions)).
+			Debug("Multiple shared MATLAB sessions discovered, attaching to the first one")
+	}
+
+	return discoveredSessions, nil
 }

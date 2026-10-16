@@ -10,7 +10,9 @@ import (
 
 	"github.com/matlab/matlab-mcp-server/internal/adaptors/matlabmanager/asyncrunner"
 	"github.com/matlab/matlab-mcp-server/internal/adaptors/matlabmanager/matlabservices/datatypes"
+	"github.com/matlab/matlab-mcp-server/internal/adaptors/matlabmanager/matlabsessionclient/embeddedconnector"
 	"github.com/matlab/matlab-mcp-server/internal/adaptors/matlabmanager/matlabsessionstore"
+	"github.com/matlab/matlab-mcp-server/internal/adaptors/matlabmanager/sharedsession"
 	"github.com/matlab/matlab-mcp-server/internal/entities"
 )
 
@@ -62,22 +64,61 @@ func (m *MATLABManager) StartMATLABSession(ctx context.Context, sessionLogger en
 	case entities.AttachToExistingSession:
 		sessionLogger.Info("Attaching to existing session")
 
-		connectionDetails, err := m.sessionSelector.SelectSessionToAttachTo(sessionLogger)
+		candidates, err := m.sessionSelector.SelectSessionsToAttachTo(sessionLogger)
 		if err != nil {
 			return zeroValue, err
 		}
 
-		embeddedConnectorClient, err := m.clientFactory.New(connectionDetails)
-		if err != nil {
-			return zeroValue, err
+		var connectionDetails embeddedconnector.ConnectionDetails
+		var embeddedConnectorClient entities.MATLABSessionClient
+		var lastClientFactoryErr error
+
+		for _, candidate := range candidates {
+			client, err := m.clientFactory.New(candidate)
+			if err != nil {
+				lastClientFactoryErr = err
+				sessionLogger.WithError(err).Debug("Failed to create client for candidate MATLAB session")
+				continue
+			}
+
+			if !client.Ping(ctx, sessionLogger).IsAlive {
+				sessionLogger.Debug("Candidate MATLAB session is not alive, trying next candidate")
+				continue
+			}
+
+			connectionDetails = candidate
+			embeddedConnectorClient = client
+			break
 		}
 
-		response := embeddedConnectorClient.Ping(ctx, sessionLogger)
-		if !response.IsAlive {
+		if embeddedConnectorClient == nil {
+			if lastClientFactoryErr != nil {
+				return zeroValue, lastClientFactoryErr
+			}
 			return zeroValue, ErrMATLABSessionNotAlive
 		}
 
 		correlationID := retrieveCorrelationID(ctx, sessionLogger, embeddedConnectorClient)
+
+		if connectionDetails.SessionID != "" {
+			// Newer toolbox versions: the shared MATLAB session polls the
+			// beacon and updates its own desktop title and console output, so
+			// the server does not touch the title or print the greeting here.
+			beacon := sharedsession.New(connectionDetails, attachedSessionClientName(m.clientInfoProvider))
+			if err := beacon.Start(sessionLogger); err != nil {
+				sessionLogger.WithError(err).Warn("failed to write agent-connected beacon for shared MATLAB session")
+			}
+			client = newCleanupSessionClient(embeddedConnectorClient, func(ctx context.Context, sessionLogger entities.Logger) error {
+				if err := beacon.Stop(ctx); err != nil {
+					sessionLogger.WithError(err).Warn("failed to remove agent-connected beacon on detach")
+				}
+				sessionLogger.Debug("Skipping session stop for externally managed MATLAB session")
+				return nil
+			})
+			sessionID := m.sessionStore.Add(client, correlationID)
+			return sessionID, nil
+		}
+
 		const showMATLABDesktop = true
 		gateClient, titleTask, originalTitle := m.indicateConnection(sessionLogger, embeddedConnectorClient, showMATLABDesktop)
 		client = newCleanupSessionClient(gateClient, func(ctx context.Context, sessionLogger entities.Logger) error {
@@ -126,4 +167,14 @@ func (m *MATLABManager) greetingInfo(showMATLABDesktop bool) entities.GreetingIn
 		ClientInfo:        m.clientInfoProvider.GetClientInfo(),
 		ShowMATLABDesktop: showMATLABDesktop,
 	}
+}
+
+// attachedSessionClientName returns the human-readable name of the connected
+// MCP client, preferring the display title over the machine name.
+func attachedSessionClientName(provider MCPClientInfoProvider) string {
+	clientInfo := provider.GetClientInfo()
+	if clientInfo.Title != "" {
+		return clientInfo.Title
+	}
+	return clientInfo.Name
 }

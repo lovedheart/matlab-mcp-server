@@ -4,6 +4,7 @@ package osfacade
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -127,4 +128,23 @@ func (osw *OsFacade) CreateTemp(dir string, pattern string) (File, error) {
 	}
 
 	return &FileWrapper{file}, nil
+}
+
+// Glob wraps the filepath.Glob function to retrieve matching file names.
+func (osw *OsFacade) Glob(pattern string) ([]string, error) {
+	return filepath.Glob(pattern)
+}
+
+// Remove wraps the os.Remove function to remove a file or empty directory.
+func (osw *OsFacade) Remove(path string) error {
+	return os.Remove(path)
+}
+
+// ModTime returns the modification time of the file at the given path.
+func (osw *OsFacade) ModTime(filePath string) (time.Time, error) {
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return info.ModTime(), nil
 }

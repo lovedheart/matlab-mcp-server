@@ -4,6 +4,8 @@ package matlabmanager_test
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 	"testing/synctest"
@@ -540,8 +542,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_HappyPath(t *t
 	expectedCtx := t.Context()
 
 	mockSessionSelector.EXPECT().
-		SelectSessionToAttachTo(mockLogger.AsMockArg()).
-		Return(expectedConnectionDetails, nil).
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}, nil).
 		Once()
 
 	mockClientFactory.EXPECT().
@@ -635,8 +637,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_SessionSelecto
 	expectedCtx := t.Context()
 
 	mockSessionSelector.EXPECT().
-		SelectSessionToAttachTo(mockLogger.AsMockArg()).
-		Return(embeddedconnector.ConnectionDetails{}, assert.AnError).
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return(nil, assert.AnError).
 		Once()
 
 	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector, mockClientInfoProvider, mockConnectionIndicator)
@@ -683,8 +685,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ClientFactoryE
 	expectedCtx := t.Context()
 
 	mockSessionSelector.EXPECT().
-		SelectSessionToAttachTo(mockLogger.AsMockArg()).
-		Return(expectedConnectionDetails, nil).
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}, nil).
 		Once()
 
 	mockClientFactory.EXPECT().
@@ -739,8 +741,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_PingFailure(t 
 	expectedCtx := t.Context()
 
 	mockSessionSelector.EXPECT().
-		SelectSessionToAttachTo(mockLogger.AsMockArg()).
-		Return(expectedConnectionDetails, nil).
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}, nil).
 		Once()
 
 	mockClientFactory.EXPECT().
@@ -1330,8 +1332,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_StopSession_Re
 	var capturedClient matlabsessionstore.MATLABSessionClientWithCleanup
 
 	mockSessionSelector.EXPECT().
-		SelectSessionToAttachTo(mockLogger.AsMockArg()).
-		Return(expectedConnectionDetails, nil).
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}, nil).
 		Once()
 
 	mockClientFactory.EXPECT().
@@ -1400,4 +1402,210 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_StopSession_Re
 	require.NoError(t, stopErr)
 	_, hasDebugLog := mockLogger.DebugLogs()["Skipping session stop for externally managed MATLAB session"]
 	assert.True(t, hasDebugLog, "should log that session stop was skipped for the externally managed session")
+}
+
+func TestMATLABManager_StartMATLABSession_AttachToExistingSession_SharedSessionWritesBeacon(t *testing.T) {
+	// Arrange
+	mockLogger := testutils.NewInspectableLogger()
+
+	mockConfigFactory := &mocks.MockConfigFactory{}
+	defer mockConfigFactory.AssertExpectations(t)
+
+	mockMATLABServices := &mocks.MockMATLABServices{}
+	defer mockMATLABServices.AssertExpectations(t)
+
+	mockSessionStore := &mocks.MockMATLABSessionStore{}
+	defer mockSessionStore.AssertExpectations(t)
+
+	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
+	defer mockClientFactory.AssertExpectations(t)
+
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
+
+	mockClientInfoProvider := &mocks.MockMCPClientInfoProvider{}
+	defer mockClientInfoProvider.AssertExpectations(t)
+
+	mockConnectionIndicator := &mocks.MockConnectionIndicator{}
+	defer mockConnectionIndicator.AssertExpectations(t)
+
+	mockSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer mockSessionClient.AssertExpectations(t)
+
+	expectedSessionID := entities.SessionID(42)
+	beaconPath := filepath.Join(t.TempDir(), "agentConnected_12345.json")
+	expectedConnectionDetails := embeddedconnector.ConnectionDetails{
+		Host:               "localhost",
+		Port:               "31515",
+		APIKey:             "test-api-key",
+		CertificatePEM:     []byte("cert-content"),
+		SessionID:          "session-guid-xyz",
+		SessionDetailsPath: filepath.Join(t.TempDir(), "sessionDetails_12345.json"),
+		AgentConnectedPath: beaconPath,
+	}
+
+	clientInfo := entities.MCPClientInfo{Title: "Claude Code", Name: "claude"}
+	expectedCtx := t.Context()
+
+	var capturedClient matlabsessionstore.MATLABSessionClientWithCleanup
+
+	mockSessionSelector.EXPECT().
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}, nil).
+		Once()
+
+	mockClientFactory.EXPECT().
+		New(expectedConnectionDetails).
+		Return(mockSessionClient, nil).
+		Once()
+
+	mockSessionClient.EXPECT().
+		Ping(expectedCtx, mockLogger.AsMockArg()).
+		Return(entities.PingResponse{IsAlive: true}).
+		Once()
+
+	mockSessionClient.EXPECT().
+		Eval(expectedCtx, mockLogger.AsMockArg(), entities.EvalRequest{Code: matlabmanager.CorrelationIDRetrievalCode}).
+		Return(entities.EvalResponse{ConsoleOutput: "corr-id"}, nil).
+		Once()
+
+	mockSessionStore.EXPECT().
+		Add(mock.AnythingOfType("*matlabmanager.cleanupSessionClient"), mock.AnythingOfType("string")).
+		Run(func(client matlabsessionstore.MATLABSessionClientWithCleanup, _ string) {
+			capturedClient = client
+		}).
+		Return(expectedSessionID).
+		Once()
+
+	mockClientInfoProvider.EXPECT().
+		GetClientInfo().
+		Return(clientInfo).
+		Once()
+
+	// The shared MATLAB session shows its own title and greeting via the
+	// beacon, so the server must not touch the desktop title or print.
+
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector, mockClientInfoProvider, mockConnectionIndicator)
+
+	// Act
+	var stopErr error
+	synctest.Test(t, func(t *testing.T) {
+		sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
+		require.NoError(t, err)
+		require.Equal(t, expectedSessionID, sessionID)
+
+		// Assert beacon was written with the session ID and client name.
+		beaconContent, readErr := os.ReadFile(beaconPath) //nolint:gosec // test controls the path
+		require.NoError(t, readErr)
+		var beaconData map[string]any
+		require.NoError(t, json.Unmarshal(beaconContent, &beaconData))
+		assert.Equal(t, "session-guid-xyz", beaconData["sessionId"])
+		assert.Equal(t, "Claude Code", beaconData["clientName"])
+		assert.Contains(t, beaconData, "heartbeatAtUnix")
+
+		// Detaching removes the beacon.
+		stopErr = capturedClient.StopSession(t.Context(), mockLogger)
+	})
+
+	require.NoError(t, stopErr)
+	_, err := os.Stat(beaconPath)
+	assert.True(t, os.IsNotExist(err), "beacon file should be removed on detach")
+}
+
+func TestMATLABManager_StartMATLABSession_AttachToExistingSession_SkipsDeadCandidates(t *testing.T) {
+	// Arrange
+	mockLogger := testutils.NewInspectableLogger()
+
+	mockConfigFactory := &mocks.MockConfigFactory{}
+	defer mockConfigFactory.AssertExpectations(t)
+
+	mockMATLABServices := &mocks.MockMATLABServices{}
+	defer mockMATLABServices.AssertExpectations(t)
+
+	mockSessionStore := &mocks.MockMATLABSessionStore{}
+	defer mockSessionStore.AssertExpectations(t)
+
+	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
+	defer mockClientFactory.AssertExpectations(t)
+
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
+
+	mockClientInfoProvider := &mocks.MockMCPClientInfoProvider{}
+	defer mockClientInfoProvider.AssertExpectations(t)
+
+	mockConnectionIndicator := &mocks.MockConnectionIndicator{}
+	defer mockConnectionIndicator.AssertExpectations(t)
+
+	deadClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer deadClient.AssertExpectations(t)
+	aliveClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer aliveClient.AssertExpectations(t)
+
+	expectedSessionID := entities.SessionID(42)
+	deadDetails := embeddedconnector.ConnectionDetails{Host: "localhost", Port: "31515", APIKey: "dead"}
+	aliveDetails := embeddedconnector.ConnectionDetails{Host: "localhost", Port: "31516", APIKey: "alive"}
+
+	expectedCtx := t.Context()
+
+	mockSessionSelector.EXPECT().
+		SelectSessionsToAttachTo(mockLogger.AsMockArg()).
+		Return([]embeddedconnector.ConnectionDetails{deadDetails, aliveDetails}, nil).
+		Once()
+
+	mockClientFactory.EXPECT().
+		New(deadDetails).
+		Return(deadClient, nil).
+		Once()
+	mockClientFactory.EXPECT().
+		New(aliveDetails).
+		Return(aliveClient, nil).
+		Once()
+
+	deadClient.EXPECT().
+		Ping(expectedCtx, mockLogger.AsMockArg()).
+		Return(entities.PingResponse{IsAlive: false}).
+		Once()
+	aliveClient.EXPECT().
+		Ping(expectedCtx, mockLogger.AsMockArg()).
+		Return(entities.PingResponse{IsAlive: true}).
+		Once()
+
+	aliveClient.EXPECT().
+		Eval(expectedCtx, mockLogger.AsMockArg(), entities.EvalRequest{Code: matlabmanager.CorrelationIDRetrievalCode}).
+		Return(entities.EvalResponse{ConsoleOutput: "corr-id"}, nil).
+		Once()
+
+	mockSessionStore.EXPECT().
+		Add(mock.AnythingOfType("*matlabmanager.cleanupSessionClient"), mock.AnythingOfType("string")).
+		Return(expectedSessionID).
+		Once()
+
+	mockClientInfoProvider.EXPECT().
+		GetClientInfo().
+		Return(entities.MCPClientInfo{Name: "client"}).
+		Once()
+
+	mockConnectionIndicator.EXPECT().
+		ApplyConnectedTitle(mock.Anything, mockLogger.AsMockArg(), aliveClient, mock.Anything).
+		Return("", nil).
+		Once()
+	mockConnectionIndicator.EXPECT().
+		ShowGreeting(mock.Anything, mockLogger.AsMockArg(), aliveClient, mock.Anything).
+		Return(nil).
+		Once()
+
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector, mockClientInfoProvider, mockConnectionIndicator)
+
+	// Act
+	var sessionID entities.SessionID
+	var err error
+	synctest.Test(t, func(t *testing.T) {
+		sessionID, err = manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
+		synctest.Wait()
+	})
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, expectedSessionID, sessionID)
 }

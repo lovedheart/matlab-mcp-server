@@ -35,7 +35,7 @@ type MATLABSessionClientFactory interface {
 }
 
 type SessionSelector interface {
-	SelectSessionToAttachTo(logger entities.Logger) (embeddedconnector.ConnectionDetails, error)
+	SelectSessionsToAttachTo(logger entities.Logger) ([]embeddedconnector.ConnectionDetails, error)
 }
 
 type MCPClientInfoProvider interface {

@@ -16,7 +16,10 @@ import (
 
 var ErrFailedToAttachToMATLABSession = errors.New("failed to attach to MATLAB session")
 
-const defaultDiscoveryRetryInterval = 1 * time.Second
+// defaultDiscoveryRetryInterval is how often the server re-checks for shared
+// MATLAB sessions (sessionDetails files written by shareMATLABSession) while
+// waiting to attach.
+const defaultDiscoveryRetryInterval = 5 * time.Second
 
 type ConfigFactory interface {
 	Config() (config.Config, messages.Error)
